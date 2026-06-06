@@ -1,4 +1,4 @@
-# Environment
+﻿# Environment
 .env
 .env.local
 .env.*.local
@@ -44,6 +44,8 @@ postgres_data/
 redis_data/
 traccar_logs/
 traccar_data/
+postgres/generated/
+traccar/conf/generated/
 
 # Flutter
 build/

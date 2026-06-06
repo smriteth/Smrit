@@ -1,34 +1,25 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-  <!-- Database -->
+  <!-- Generated from traccar/conf/traccar.template.xml. Do not commit the rendered file. -->
   <entry key="database.driver">org.postgresql.Driver</entry>
-  <entry key="database.url">jdbc:postgresql://postgres:5432/traccar_gps</entry>
-  <entry key="database.user">traccar_user</entry>
-  <entry key="database.password">traccar_secure_password_here</entry>
+  <entry key="database.url">jdbc:postgresql://__TRACCAR_DB_HOST__:__TRACCAR_DB_PORT__/__TRACCAR_DB_NAME__</entry>
+  <entry key="database.user">__TRACCAR_DB_USER__</entry>
+  <entry key="database.password">__TRACCAR_DB_PASSWORD__</entry>
 
-  <!-- Server -->
   <entry key="server.port">8082</entry>
   <entry key="server.address">0.0.0.0</entry>
-
-  <!-- Timezone — Ethiopia -->
   <entry key="server.timezone">Africa/Addis_Ababa</entry>
-
-  <!-- Session -->
   <entry key="server.sessionTimeout">1800000</entry>
 
-  <!-- GPS position filtering — critical for production -->
-  <!-- Without this, parked trucks spam millions of identical positions -->
   <entry key="filter.enable">true</entry>
   <entry key="filter.distance">50</entry>
   <entry key="filter.maxSpeed">250</entry>
   <entry key="filter.duplicate">true</entry>
   <entry key="filter.zero">true</entry>
 
-  <!-- Logging -->
   <entry key="logger.level">info</entry>
   <entry key="logger.file">./logs/tracker-server.log</entry>
   <entry key="logger.rotate">true</entry>
 
-  <!-- OsmAnd protocol — what Flutter app uses for GPS posting -->
   <entry key="osmand.port">5055</entry>
 </configuration>

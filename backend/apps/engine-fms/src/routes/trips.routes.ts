@@ -1,13 +1,14 @@
-import { Router, Response } from 'express';
+﻿import { Router, Response } from 'express';
 import { z } from 'zod';
 import { ulid } from 'ulid';
 import { prisma } from '@smrit/shared-db';
 import { AuthRequest, requireUserAuth, requireDriverAuth, DriverAuthPayload } from '../middleware/auth.middleware';
-import { traccarServiceInstance, TraccarService } from '../index';
+import { TraccarService } from '../services/traccar.service';
 import { AlertService } from '../services/alert.service';
 import { asyncHandler } from '../utils/asyncHandler';
 import { validateQuery, paginationSchema } from '../middleware/validateQuery';
 import { logger } from '../utils/logger';
+import { getTraccarServiceInstance, getTraccarOsmAndEndpoint } from '../runtime';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ const tripListQuerySchema = paginationSchema.extend({
   to: z.coerce.date().optional(),
 });
 
-// POST /api/trips/start — driver starts a trip
+// POST /api/trips/start - driver starts a trip
 router.post('/start', requireDriverAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const schema = z.object({
     originName: z.string(),
@@ -57,7 +58,7 @@ router.post('/start', requireDriverAuth, asyncHandler<AuthRequest>(async (req, r
       return res.status(400).json({ error: 'Pre-trip inspection not found' });
     }
     if (inspection.status === 'FAILED') {
-      return res.status(400).json({ error: 'Cannot start trip — pre-trip inspection failed' });
+      return res.status(400).json({ error: 'Cannot start trip - pre-trip inspection failed' });
     }
   }
 
@@ -87,11 +88,11 @@ router.post('/start', requireDriverAuth, asyncHandler<AuthRequest>(async (req, r
     tripId: trip.id,
     message: 'Trip started. GPS tracking active.',
     traccarUniqueId: auth.traccarUniqueId,
-    osmandEndpoint: `${process.env.TRACCAR_OSMAND_ENDPOINT}`,
+    osmandEndpoint: getTraccarOsmAndEndpoint(),
   });
 }));
 
-// POST /api/trips/:id/complete — driver completes trip
+// POST /api/trips/:id/complete - driver completes trip
 router.post('/:id/complete', requireDriverAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const auth = req.auth as DriverAuthPayload;
 
@@ -102,7 +103,7 @@ router.post('/:id/complete', requireDriverAuth, asyncHandler<AuthRequest>(async 
 
   try {
     // Fetch GPS positions from Traccar for this trip's duration
-    const positions = await traccarServiceInstance.getPositions(
+    const positions = await getTraccarServiceInstance().getPositions(
       trip.traccarDeviceId,
       trip.startedAt,
       new Date(),
@@ -131,7 +132,7 @@ router.post('/:id/complete', requireDriverAuth, asyncHandler<AuthRequest>(async 
     const totalEarningsEtb = distanceChargesEtb + bonusEtb - penaltyEtb;
 
     // Update trip + create earning record atomically
-    const [updatedTrip] = await prisma.$transaction([
+    await prisma.$transaction([
       prisma.fmsTrip.update({
         where: { id: trip.id },
         data: {
@@ -204,7 +205,7 @@ router.post('/:id/complete', requireDriverAuth, asyncHandler<AuthRequest>(async 
   }
 }));
 
-// GET /api/trips — list trips for account (dashboard use)
+// GET /api/trips - list trips for account (dashboard use)
 router.get('/', requireUserAuth, validateQuery(tripListQuerySchema), asyncHandler<AuthRequest>(async (req, res) => {
   const auth = req.auth as { accountId: string };
   const { status, driverId, truckId, from, to, limit, offset } =
@@ -237,7 +238,7 @@ router.get('/', requireUserAuth, validateQuery(tripListQuerySchema), asyncHandle
   res.json(trips);
 }));
 
-// GET /api/trips/active — driver's currently active trip
+// GET /api/trips/active - driver's currently active trip
 router.get('/active', requireDriverAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const auth = req.auth as DriverAuthPayload;
 
@@ -249,7 +250,7 @@ router.get('/active', requireDriverAuth, asyncHandler<AuthRequest>(async (req, r
   res.json({ active: true, trip });
 }));
 
-// GET /api/trips/mine — driver's own trip history (driver-authenticated)
+// GET /api/trips/mine - driver's own trip history (driver-authenticated)
 router.get('/mine', requireDriverAuth, validateQuery(paginationSchema), asyncHandler<AuthRequest>(async (req, res) => {
   const auth = req.auth as DriverAuthPayload;
   const { limit, offset } = res.locals.query as z.infer<typeof paginationSchema>;

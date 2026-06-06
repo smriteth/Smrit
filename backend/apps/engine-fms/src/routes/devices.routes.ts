@@ -1,11 +1,11 @@
-import { Router, Response } from 'express';
+﻿import { Router, Response } from 'express';
 import { z } from 'zod';
 import { ulid } from 'ulid';
 import { prisma } from '@smrit/shared-db';
 import { AuthRequest, requireUserAuth } from '../middleware/auth.middleware';
-import { traccarServiceInstance } from '../index';
 import { asyncHandler } from '../utils/asyncHandler';
 import { validateQuery } from '../middleware/validateQuery';
+import { getTraccarServiceInstance } from '../runtime';
 
 const router = Router();
 
@@ -16,7 +16,6 @@ const historyQuerySchema = z.object({
 });
 
 const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-const NINETY_DAYS = 90 * 24 * 60 * 60 * 1000;
 
 function expiryStatus(date: Date | null): 'OK' | 'EXPIRING_SOON' | 'EXPIRED' {
   if (!date) return 'OK';
@@ -26,7 +25,7 @@ function expiryStatus(date: Date | null): 'OK' | 'EXPIRING_SOON' | 'EXPIRED' {
   return 'OK';
 }
 
-// GET /api/devices — list trucks with latest positions
+// GET /api/devices - list trucks with latest positions
 router.get('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const auth = req.auth as { accountId: string };
 
@@ -37,7 +36,7 @@ router.get('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => {
 
   let latestPositions: Record<number, { lat: number; lng: number; speed: number; fixTime: string }> = {};
   try {
-    const positions = await traccarServiceInstance.getLatestPositions();
+    const positions = await getTraccarServiceInstance().getLatestPositions();
     for (const pos of positions) {
       latestPositions[pos.deviceId] = {
         lat: pos.latitude,
@@ -47,7 +46,7 @@ router.get('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => {
       };
     }
   } catch {
-    // Traccar unavailable — return trucks without positions
+    // Traccar unavailable - return trucks without positions
   }
 
   const result = trucks.map((truck) => ({
@@ -73,7 +72,7 @@ router.get('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => {
   res.json(result);
 }));
 
-// POST /api/devices — register a truck
+// POST /api/devices - register a truck
 router.post('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const schema = z.object({
     licensePlate: z.string(),
@@ -94,7 +93,7 @@ router.post('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => 
 
   let traccarDeviceId: number | null = null;
   try {
-    const traccarDevice = await traccarServiceInstance.createDevice(
+    const traccarDevice = await getTraccarServiceInstance().createDevice(
       body.data.licensePlate,
       traccarUniqueId,
     );
@@ -123,7 +122,7 @@ router.post('/', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => 
   res.status(201).json(truck);
 }));
 
-// PATCH /api/devices/:id — update truck fields
+// PATCH /api/devices/:id - update truck fields
 router.patch('/:id', requireUserAuth, asyncHandler<AuthRequest>(async (req, res) => {
   const schema = z.object({
     status: z.enum(['ACTIVE', 'MAINTENANCE', 'RETIRED']).optional(),
@@ -170,7 +169,7 @@ router.get('/:id/history', requireUserAuth, validateQuery(historyQuerySchema), a
   if (!truck?.traccarDeviceId) return res.status(404).json({ error: 'Truck not found or no GPS device' });
 
   try {
-    const positions = await traccarServiceInstance.getPositions(
+    const positions = await getTraccarServiceInstance().getPositions(
       truck.traccarDeviceId,
       from,
       to,

@@ -15,17 +15,14 @@ vi.mock('@smrit/shared-db', () => ({
   },
 }));
 
-// Mock traccarServiceInstance before importing routes
-vi.mock('../../index', () => ({
-  traccarServiceInstance: {
-    getLatestPositions: vi.fn().mockResolvedValue([]),
-    createDevice: vi.fn().mockResolvedValue({ id: 42 }),
-    getPositions: vi.fn().mockResolvedValue([]),
-  },
-  TraccarService: {
-    haversineKm: vi.fn(),
-    totalDistanceKm: vi.fn().mockReturnValue(0),
-  },
+const traccarServiceInstance = {
+  getLatestPositions: vi.fn().mockResolvedValue([]),
+  createDevice: vi.fn().mockResolvedValue({ id: 42 }),
+  getPositions: vi.fn().mockResolvedValue([]),
+};
+
+vi.mock('../../runtime', () => ({
+  getTraccarServiceInstance: vi.fn(() => traccarServiceInstance),
 }));
 
 import deviceRoutes from '../../routes/devices.routes';
@@ -82,7 +79,6 @@ describe('GET /api/devices', () => {
   });
 
   it('returns trucks without positions when Traccar is unavailable', async () => {
-    const { traccarServiceInstance } = await import('../../index.js');
     (traccarServiceInstance.getLatestPositions as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
       new Error('Connection refused'),
     );

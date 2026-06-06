@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "smrit-backend",
   "private": true,
   "scripts": {
@@ -6,6 +6,7 @@
     "build": "pnpm --filter shared-db build && pnpm --filter engine-fms build",
     "db:generate": "pnpm --filter shared-db exec prisma generate",
     "db:migrate": "pnpm --filter shared-db exec prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter shared-db exec prisma migrate deploy",
     "db:seed": "pnpm --filter shared-db exec prisma db seed"
   }
 }

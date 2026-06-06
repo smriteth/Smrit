@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios';
+﻿import axios, { AxiosInstance } from 'axios';
 
 export interface TraccarDevice {
   id: number;
@@ -16,7 +16,7 @@ export interface TraccarPosition {
   latitude: number;
   longitude: number;
   altitude: number;
-  speed: number;   // knots — convert to km/h by multiplying by 1.852
+  speed: number;   // knots - convert to km/h by multiplying by 1.852
   course: number;
   accuracy: number;
   fixTime: string;
@@ -36,7 +36,7 @@ export class TraccarService {
     this.client = axios.create({
       baseURL: `${traccarUrl.replace(/\/$/, '')}/api`,
       headers: { Authorization: `Basic ${token}` },
-      timeout: 10000,
+      timeout: 5000,
     });
   }
 

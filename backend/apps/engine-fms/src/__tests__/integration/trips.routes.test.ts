@@ -18,13 +18,13 @@ vi.mock('@smrit/shared-db', () => ({
   },
 }));
 
-vi.mock('../../index', () => ({
-  traccarServiceInstance: {
-    getPositions: vi.fn().mockResolvedValue([]),
-  },
-  TraccarService: {
-    totalDistanceKm: vi.fn().mockReturnValue(100),
-  },
+const traccarServiceInstance = {
+  getPositions: vi.fn().mockResolvedValue([]),
+};
+
+vi.mock('../../runtime', () => ({
+  getTraccarServiceInstance: vi.fn(() => traccarServiceInstance),
+  getTraccarOsmAndEndpoint: vi.fn(() => 'http://localhost:5055/'),
 }));
 
 vi.mock('../../services/alert.service', () => ({
