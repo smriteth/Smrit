@@ -1,0 +1,27 @@
+{
+  "name": "smrit",
+  "version": "1.0.0",
+  "description": "**SMRIT** is a white-labeled fleet management system (FMS) for the Ethiopian market. It allows fleet operators to track vehicles in real-time, manage drivers, record trips, calculate driver earnings, and generate compliance reports — all under the SMRIT brand.",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test:unit": "cd backend/apps/engine-fms && pnpm vitest run src/__tests__/unit",
+    "test:integration": "cd backend/apps/engine-fms && pnpm vitest run src/__tests__/integration",
+    "test:smoke": "cd backend/apps/engine-fms && pnpm vitest run ../../tests/smoke --config vitest.config.ts",
+    "test:golden": "cd backend/apps/engine-fms && pnpm vitest run ../../tests/smoke/golden-path.test.ts --config vitest.config.ts",
+    "test:security": "cd backend/apps/engine-fms && pnpm vitest run ../../tests/security --config vitest.config.ts",
+    "test:e2e": "npx playwright test",
+    "test:mobile": "cd mobile/smrit-driver && flutter test",
+    "test:all": "npm run test:unit && npm run test:integration",
+    "test": "npm run test:unit && npm run test:integration"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0"
+  }
+}

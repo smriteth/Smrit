@@ -1,0 +1,75 @@
+# Maestro flow: Full driver trip lifecycle
+# Run: maestro test mobile/smrit-driver/.maestro/trip_flow.yaml
+# Requires: emulator + running backend + driver seeded with an assigned truck.
+
+appId: com.smrit.driver
+---
+# ── Step 1: Login ─────────────────────────────────────────────────────────────
+- launchApp:
+    clearState: true
+
+- assertVisible:
+    text: "SMRIT"
+
+- tapOn:
+    text: "+251"
+- clearText
+- inputText: ${DRIVER_PHONE:-+251911100001}
+
+- tapOn:
+    id: "password_field"
+    optional: true
+- inputText: ${DRIVER_PASS:-driver1234}
+
+- tapOn:
+    text: "Sign In"
+
+- assertVisible:
+    text: "Active Trip"
+    timeout: 10000
+
+# ── Step 2: Start a trip ──────────────────────────────────────────────────────
+- tapOn:
+    text: "Start Trip"
+
+# Fill origin and destination
+- tapOn:
+    id: "origin_field"
+    optional: true
+- inputText: "Addis Ababa Merkato"
+
+- tapOn:
+    id: "destination_field"
+    optional: true
+- inputText: "Dire Dawa Station"
+
+- tapOn:
+    text: "Start Trip"
+
+# Should navigate to Active Trip screen
+- assertVisible:
+    text: "In Progress"
+    timeout: 8000
+
+# ── Step 3: Complete the trip ─────────────────────────────────────────────────
+- tapOn:
+    text: "Complete Trip"
+
+# Confirm completion dialog if present
+- tapOn:
+    text: "Confirm"
+    optional: true
+
+# Should show trip summary with earnings
+- assertVisible:
+    text: "ETB"
+    timeout: 10000
+
+# ── Step 4: Check earnings screen ────────────────────────────────────────────
+- tapOn:
+    text: "View Earnings"
+    optional: true
+
+- assertVisible:
+    text: "Earnings"
+    timeout: 5000

@@ -1,0 +1,335 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────
+// SMRIT FMS Models — smrit_fms database only
+// Never touch traccar_gps database from here
+// ─────────────────────────────────────────────────
+
+model FmsAccount {
+  id              String      @id @db.VarChar(26)
+  name            String
+  contactEmail    String      @map("contact_email")
+  contactPhone    String      @map("contact_phone")
+  traccarUserId   Int?        @map("traccar_user_id")
+  isActive        Boolean     @default(true) @map("is_active")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  trucks          FmsTruck[]
+  drivers         FmsDriver[]
+  trips           FmsTrip[]
+  geofences       FmsGeofence[]
+  alerts          FmsAlert[]
+  maintenanceRecords FmsMaintenanceRecord[]
+  fuelLogs        FmsFuelLog[]
+  inspections     FmsInspection[]
+
+  @@map("fms_accounts")
+}
+
+model FmsUser {
+  id              String      @id @db.VarChar(26)
+  accountId       String      @db.VarChar(26) @map("account_id")
+  email           String      @unique
+  passwordHash    String      @map("password_hash")
+  role            String      @default("FLEET_MANAGER")
+  // roles: FLEET_OWNER, FLEET_MANAGER, OPS_ADMIN
+  isActive        Boolean     @default(true) @map("is_active")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  @@map("fms_users")
+}
+
+model FmsTruck {
+  id                 String      @id @db.VarChar(26)
+  accountId          String      @db.VarChar(26) @map("account_id")
+  traccarDeviceId    Int?        @map("traccar_device_id")
+  traccarUniqueId    String      @unique @map("traccar_unique_id")
+  licensePlate       String      @unique @map("license_plate")
+  model              String
+  year               Int
+  capacityKg         Int         @map("capacity_kg")
+  status             String      @default("ACTIVE")
+  // status: ACTIVE, MAINTENANCE, RETIRED
+  fuelType           String      @default("DIESEL") @map("fuel_type")
+  // fuelType: DIESEL, PETROL, CNG
+  odometerKm         Int         @default(0) @map("odometer_km")
+  insuranceExpiry    DateTime?   @map("insurance_expiry")
+  registrationExpiry DateTime?   @map("registration_expiry")
+  nextServiceKm      Int?        @map("next_service_km")
+
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  account            FmsAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  activeDriver       FmsDriver?  @relation("ActiveTruck")
+  trips              FmsTrip[]
+  maintenanceRecords FmsMaintenanceRecord[]
+  fuelLogs           FmsFuelLog[]
+  geofenceEvents     FmsGeofenceEvent[]
+  inspections        FmsInspection[]
+
+  @@index([accountId])
+  @@index([traccarDeviceId])
+  @@map("fms_trucks")
+}
+
+model FmsDriver {
+  id                String      @id @db.VarChar(26)
+  accountId         String      @db.VarChar(26) @map("account_id")
+  name              String
+  phone             String      @unique
+  passwordHash      String      @map("password_hash")
+  licenseNumber     String      @unique @map("license_number")
+  licenseExpiry     DateTime    @map("license_expiry")
+  assignedTruckId   String?     @unique @db.VarChar(26) @map("assigned_truck_id")
+  status            String      @default("ACTIVE")
+  // status: ACTIVE, INACTIVE, SUSPENDED
+  totalTrips        Int         @default(0) @map("total_trips")
+  totalEarningsEtb  Decimal     @default(0) @db.Decimal(12, 2) @map("total_earnings_etb")
+  behaviorScore     Int         @default(100) @map("behavior_score")
+  emergencyContact  String?     @map("emergency_contact")
+
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+
+  account           FmsAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  assignedTruck     FmsTruck?   @relation("ActiveTruck", fields: [assignedTruckId], references: [id])
+  trips             FmsTrip[]
+  earnings          FmsDriverEarning[]
+  fuelLogs          FmsFuelLog[]
+  inspections       FmsInspection[]
+
+  @@index([accountId])
+  @@map("fms_drivers")
+}
+
+model FmsTrip {
+  id                  String      @id @db.VarChar(26)
+  accountId           String      @db.VarChar(26) @map("account_id")
+  truckId             String      @db.VarChar(26) @map("truck_id")
+  driverId            String      @db.VarChar(26) @map("driver_id")
+  traccarDeviceId     Int         @map("traccar_device_id")
+
+  originName          String      @map("origin_name")
+  originLat           Decimal     @db.Decimal(9, 6) @map("origin_lat")
+  originLng           Decimal     @db.Decimal(9, 6) @map("origin_lng")
+  destinationName     String      @map("destination_name")
+  destLat             Decimal     @db.Decimal(9, 6) @map("dest_lat")
+  destLng             Decimal     @db.Decimal(9, 6) @map("dest_lng")
+
+  status              String      @default("STARTED")
+  // status: STARTED, IN_TRANSIT, COMPLETED, FAILED
+
+  cargoDescription    String?     @map("cargo_description")
+  cargoWeightKg       Int?        @map("cargo_weight_kg")
+  preInspectionId     String?     @db.VarChar(26) @map("pre_inspection_id")
+
+  plannedDistanceKm   Decimal?    @db.Decimal(8, 2) @map("planned_distance_km")
+  actualDistanceKm    Decimal?    @db.Decimal(8, 2) @map("actual_distance_km")
+  plannedArrival      DateTime?   @map("planned_arrival")
+  actualArrival       DateTime?   @map("actual_arrival")
+
+  maxSpeedKmh         Int?        @map("max_speed_kmh")
+  avgSpeedKmh         Int?        @map("avg_speed_kmh")
+
+  baseRatePerKm       Decimal     @db.Decimal(8, 2) @map("base_rate_per_km")
+  distanceChargesEtb  Decimal     @default(0) @db.Decimal(12, 2) @map("distance_charges_etb")
+  bonusEtb            Decimal     @default(0) @db.Decimal(10, 2) @map("bonus_etb")
+  penaltyEtb          Decimal     @default(0) @db.Decimal(10, 2) @map("penalty_etb")
+  totalEarningsEtb    Decimal     @default(0) @db.Decimal(12, 2) @map("total_earnings_etb")
+
+  startedAt           DateTime    @default(now()) @map("started_at")
+  completedAt         DateTime?   @map("completed_at")
+  createdAt           DateTime    @default(now()) @map("created_at")
+
+  account             FmsAccount  @relation(fields: [accountId], references: [id])
+  truck               FmsTruck    @relation(fields: [truckId], references: [id])
+  driver              FmsDriver   @relation(fields: [driverId], references: [id])
+  earning             FmsDriverEarning?
+  fuelLogs            FmsFuelLog[]
+  inspections         FmsInspection[]
+
+  @@index([accountId])
+  @@index([driverId])
+  @@index([status])
+  @@index([startedAt])
+  @@map("fms_trips")
+}
+
+model FmsDriverEarning {
+  id              String      @id @db.VarChar(26)
+  driverId        String      @db.VarChar(26) @map("driver_id")
+  tripId          String      @unique @db.VarChar(26) @map("trip_id")
+
+  distanceKm      Decimal     @db.Decimal(8, 2) @map("distance_km")
+  ratePerKm       Decimal     @db.Decimal(8, 2) @map("rate_per_km")
+  baseEarning     Decimal     @db.Decimal(12, 2) @map("base_earning")
+  bonus           Decimal     @default(0) @db.Decimal(10, 2)
+  penalty         Decimal     @default(0) @db.Decimal(10, 2)
+  totalEarning    Decimal     @db.Decimal(12, 2) @map("total_earning")
+  status          String      @default("PENDING")
+  // status: PENDING, APPROVED, PAID
+  paidAt          DateTime?   @map("paid_at")
+  paymentRef      String?     @map("payment_ref")
+
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  driver          FmsDriver   @relation(fields: [driverId], references: [id])
+  trip            FmsTrip     @relation(fields: [tripId], references: [id])
+
+  @@index([driverId])
+  @@index([status])
+  @@map("fms_driver_earnings")
+}
+
+// ─────────────────────────────────────────────────
+// Enterprise Feature Models
+// ─────────────────────────────────────────────────
+
+model FmsMaintenanceRecord {
+  id          String    @id @db.VarChar(26)
+  accountId   String    @db.VarChar(26) @map("account_id")
+  truckId     String    @db.VarChar(26) @map("truck_id")
+  type        String
+  // OIL_CHANGE, TIRE_ROTATION, BRAKE_SERVICE, FULL_SERVICE, OTHER
+  scheduledAt DateTime  @map("scheduled_at")
+  completedAt DateTime? @map("completed_at")
+  costEtb     Decimal?  @db.Decimal(12, 2) @map("cost_etb")
+  mileageKm   Int?      @map("mileage_km")
+  notes       String?
+  status      String    @default("SCHEDULED") @map("status")
+  // SCHEDULED, COMPLETED, OVERDUE
+
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  account     FmsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  truck       FmsTruck   @relation(fields: [truckId], references: [id])
+
+  @@index([truckId])
+  @@index([accountId])
+  @@index([status])
+  @@map("fms_maintenance_records")
+}
+
+model FmsFuelLog {
+  id          String    @id @db.VarChar(26)
+  accountId   String    @db.VarChar(26) @map("account_id")
+  truckId     String    @db.VarChar(26) @map("truck_id")
+  driverId    String?   @db.VarChar(26) @map("driver_id")
+  tripId      String?   @db.VarChar(26) @map("trip_id")
+  liters      Decimal   @db.Decimal(8, 2)
+  costEtb     Decimal   @db.Decimal(12, 2) @map("cost_etb")
+  odometerKm  Int       @map("odometer_km")
+  fuelType    String    @default("DIESEL") @map("fuel_type")
+  filledAt    DateTime  @map("filled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  account     FmsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  truck       FmsTruck   @relation(fields: [truckId], references: [id])
+  driver      FmsDriver? @relation(fields: [driverId], references: [id])
+  trip        FmsTrip?   @relation(fields: [tripId], references: [id])
+
+  @@index([truckId])
+  @@index([accountId])
+  @@index([filledAt])
+  @@map("fms_fuel_logs")
+}
+
+model FmsGeofence {
+  id          String    @id @db.VarChar(26)
+  accountId   String    @db.VarChar(26) @map("account_id")
+  name        String
+  description String?
+  type        String    @default("ALERT")
+  // RESTRICTED, ALLOWED, ALERT
+  polygon     Json
+  // Array of {lat: number, lng: number} points
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  account     FmsAccount       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  events      FmsGeofenceEvent[]
+
+  @@index([accountId])
+  @@map("fms_geofences")
+}
+
+model FmsGeofenceEvent {
+  id          String      @id @db.VarChar(26)
+  truckId     String      @db.VarChar(26) @map("truck_id")
+  geofenceId  String      @db.VarChar(26) @map("geofence_id")
+  eventType   String      @map("event_type")
+  // ENTER, EXIT
+  lat         Decimal     @db.Decimal(9, 6)
+  lng         Decimal     @db.Decimal(9, 6)
+  occurredAt  DateTime    @map("occurred_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  truck       FmsTruck    @relation(fields: [truckId], references: [id])
+  geofence    FmsGeofence @relation(fields: [geofenceId], references: [id])
+
+  @@index([truckId])
+  @@index([geofenceId])
+  @@index([occurredAt])
+  @@map("fms_geofence_events")
+}
+
+model FmsAlert {
+  id          String    @id @db.VarChar(26)
+  accountId   String    @db.VarChar(26) @map("account_id")
+  truckId     String?   @db.VarChar(26) @map("truck_id")
+  driverId    String?   @db.VarChar(26) @map("driver_id")
+  type        String
+  // SPEEDING, GEOFENCE_VIOLATION, MAINTENANCE_DUE, LICENSE_EXPIRY, IDLE, DOCUMENT_EXPIRY
+  severity    String    @default("MEDIUM")
+  // HIGH, MEDIUM, LOW
+  message     String
+  metadata    Json?
+  isRead      Boolean   @default(false) @map("is_read")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  account     FmsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("fms_alerts")
+}
+
+model FmsInspection {
+  id          String    @id @db.VarChar(26)
+  accountId   String    @db.VarChar(26) @map("account_id")
+  truckId     String    @db.VarChar(26) @map("truck_id")
+  driverId    String    @db.VarChar(26) @map("driver_id")
+  tripId      String?   @db.VarChar(26) @map("trip_id")
+  type        String
+  // PRE_TRIP, POST_TRIP
+  checklist   Json
+  // [{item: string, passed: boolean, notes?: string}]
+  status      String    @default("PENDING")
+  // PENDING, PASSED, FAILED
+  notes       String?
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  account     FmsAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  truck       FmsTruck   @relation(fields: [truckId], references: [id])
+  driver      FmsDriver  @relation(fields: [driverId], references: [id])
+  trip        FmsTrip?   @relation(fields: [tripId], references: [id])
+
+  @@index([truckId])
+  @@index([driverId])
+  @@index([accountId])
+  @@map("fms_inspections")
+}

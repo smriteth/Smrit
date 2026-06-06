@@ -1,0 +1,38 @@
+# Maestro flow: Driver login
+# Run: maestro test mobile/smrit-driver/.maestro/login.yaml
+# Requires: emulator running + SMRIT backend reachable at the configured API_BASE_URL.
+#
+# Set env vars before running:
+#   export DRIVER_PHONE=+251911100001
+#   export DRIVER_PASS=driver1234
+
+appId: com.smrit.driver
+---
+- launchApp:
+    clearState: true
+
+# Wait for the login screen to appear
+- assertVisible:
+    text: "SMRIT"
+- assertVisible:
+    text: "Driver Portal"
+
+# Fill credentials
+- tapOn:
+    text: "+251"
+- clearText
+- inputText: ${DRIVER_PHONE:-+251911100001}
+
+- tapOn:
+    id: "password_field"
+    optional: true
+- inputText: ${DRIVER_PASS:-driver1234}
+
+# Submit
+- tapOn:
+    text: "Sign In"
+
+# Verify successful login — Home screen should appear
+- assertVisible:
+    text: "Active Trip"
+    timeout: 10000
