@@ -7,6 +7,7 @@
     "test": "tests"
   },
   "scripts": {
+    "launch:preflight": "node scripts/production-preflight.mjs",
     "render:configs": "node scripts/render-runtime-configs.mjs",
     "test:unit": "cd backend/apps/engine-fms && pnpm vitest run src/__tests__/unit",
     "test:integration": "cd backend/apps/engine-fms && pnpm vitest run src/__tests__/integration",

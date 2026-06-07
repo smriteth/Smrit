@@ -11,28 +11,34 @@ SMRIT is a white-labeled fleet management system for the Ethiopian market. It pr
 
 ## Launch Flow
 
-1. Create a local `.env` from `.env.example`.
-2. Render the secret-backed runtime configs:
+1. Create a production `.env` from `.env.production.example` and replace every placeholder with production values.
+2. Run the production preflight and render the secret-backed runtime configs:
    ```bash
+   npm run launch:preflight
    npm run render:configs
    ```
-3. Build the dashboard and backend:
+3. Build the dashboard with the production API URL:
    ```bash
    cd frontend
    npm install
-   npm run build
-
-   cd ../backend
+   VITE_API_URL=https://<your-domain>/api npm run build
+   cd ..
+   ```
+4. Install and build the backend:
+   ```bash
+   cd backend
    pnpm install --frozen-lockfile
    pnpm build
+   cd ..
    ```
-4. Apply database migrations for production:
+5. Start Postgres and Redis, then apply production migrations:
    ```bash
+   docker compose up -d postgres redis
    npm run db:migrate:deploy
    ```
-5. Start the stack:
+6. Start the complete stack:
    ```bash
-   docker compose up -d postgres redis traccar nginx
+   docker compose up -d --build
    ```
 
 ## Production Rules
@@ -66,6 +72,7 @@ Then verify the dashboard login, truck creation, driver creation, trip start/com
 ## Scripts
 
 - `npm run render:configs` - generate the ignored runtime config files from `.env`
+- `npm run launch:preflight` - reject unsafe production `.env` values before deployment
 - `npm run db:migrate:deploy` - apply Prisma migrations in production mode
 - `npm run test:e2e` - run Playwright tests
 - `npm run test:mobile` - run Flutter tests for the driver app
@@ -82,11 +89,9 @@ Then verify the dashboard login, truck creation, driver creation, trip start/com
 
 ## Documentation
 
-- `SMRIT_DOCUMENTATION.md`
-- `CLAUDE.md`
-- `QUICKSTART.md`
-- `Status.md`
+- `PRODUCTION_SIGNOFF.md` - required production gate before real fleet rollout
+- `QUICKSTART.md`, `Status.md`, `CLAUDE.md`, and `Smrit_documentation.md` are development or historical notes, not production runbooks.
 
 ## Support
 
-If something is unclear, treat `SMRIT_DOCUMENTATION.md` as the source of truth and keep production secrets out of Git.
+If something is unclear, treat the current README, `PRODUCTION_SIGNOFF.md`, Docker Compose file, and committed launch checks as the source of truth. Keep production secrets out of Git.

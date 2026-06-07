@@ -41,6 +41,64 @@ function required(name, fallback = '') {
   return value;
 }
 
+function isPlaceholder(value) {
+  return /<[^>]+>|CHANGE_ME|change_me|password_123|secret_123|example\.com/i.test(value);
+}
+
+function isLocalUrl(value) {
+  return /localhost|127\.0\.0\.1|0\.0\.0\.0|10\.0\.2\.2/i.test(value);
+}
+
+function validateProductionEnv() {
+  if (env.NODE_ENV !== 'production') return;
+
+  const requiredNames = [
+    'POSTGRES_USER',
+    'POSTGRES_PASSWORD',
+    'REDIS_PASSWORD',
+    'TRACCAR_DB_USER',
+    'TRACCAR_DB_PASSWORD',
+    'TRACCAR_ADMIN_EMAIL',
+    'TRACCAR_ADMIN_PASSWORD',
+    'TRACCAR_OSMAND_ENDPOINT',
+    'JWT_SECRET',
+    'CORS_ORIGIN',
+    'VITE_API_URL',
+  ];
+
+  const issues = [];
+  for (const name of requiredNames) {
+    const value = env[name];
+    if (!value) {
+      issues.push(`${name} is required`);
+    } else if (isPlaceholder(value)) {
+      issues.push(`${name} still contains a placeholder or sample value`);
+    }
+  }
+
+  for (const name of ['TRACCAR_OSMAND_ENDPOINT', 'CORS_ORIGIN', 'VITE_API_URL']) {
+    const value = env[name];
+    if (value && !value.startsWith('https://')) {
+      issues.push(`${name} must use HTTPS in production`);
+    }
+    if (value && isLocalUrl(value)) {
+      issues.push(`${name} must not point at localhost in production`);
+    }
+  }
+
+  if (env.CORS_ORIGIN === '*') {
+    issues.push('CORS_ORIGIN must be a specific dashboard origin in production');
+  }
+
+  if (env.JWT_SECRET && env.JWT_SECRET.length < 64) {
+    issues.push('JWT_SECRET must be at least 64 characters in production');
+  }
+
+  if (issues.length > 0) {
+    throw new Error(`Invalid production environment:\n- ${issues.join('\n- ')}`);
+  }
+}
+
 function render(template, replacements) {
   let output = template;
   for (const [token, value] of Object.entries(replacements)) {
@@ -56,6 +114,8 @@ const postgresGeneratedPath = path.join(repoRoot, 'postgres', 'generated', 'init
 
 const traccarTemplate = fs.readFileSync(traccarTemplatePath, 'utf8');
 const postgresTemplate = fs.readFileSync(postgresTemplatePath, 'utf8');
+
+validateProductionEnv();
 
 const replacements = {
   __TRACCAR_DB_HOST__: env.TRACCAR_DB_HOST ?? 'postgres',

@@ -10,7 +10,7 @@ branding anywhere.
 - backend/packages/shared-db — Prisma schema for smrit_fms database only
 - frontend — React + Vite dashboard
 - mobile/smrit-driver — Flutter driver app
-- Infrastructure: docker-compose.yml + traccar/conf/traccar.xml
+- Infrastructure: docker-compose.yml + generated Traccar config from traccar/conf/traccar.template.xml
 
 ## Critical Rules
 
@@ -32,7 +32,8 @@ branding anywhere.
 ## Database
 - Two databases on same PostgreSQL instance: traccar_gps (Traccar's) and smrit_fms (ours)
 - Prisma manages smrit_fms only. Connection string: DATABASE_URL env var.
-- Run migrations: pnpm --filter shared-db exec prisma migrate dev
+- Local development migrations: pnpm --filter shared-db exec prisma migrate dev
+- Production migrations: pnpm --filter shared-db exec prisma migrate deploy
 
 ## Running Locally
 ```bash

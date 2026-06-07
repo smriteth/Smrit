@@ -1,4 +1,4 @@
-﻿// Central runtime configuration for the dashboard.
+// Central runtime configuration for the dashboard.
 // VITE_API_URL must be set for production builds; we fall back to localhost for local
 // dev and fail loudly so a production build never silently points at localhost.
 
@@ -43,7 +43,6 @@ export const apiBaseUrl = configuredApiUrl ?? FALLBACK_API_URL
 export const isUsingFallbackApi = !configuredApiUrl
 
 if (isUsingFallbackApi && env.PROD) {
-  // eslint-disable-next-line no-console
   console.warn(
     '[SMRIT] VITE_API_URL is not set - using localhost fallback. Set VITE_API_URL before building for production.',
   )
