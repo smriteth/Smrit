@@ -1,4 +1,4 @@
-﻿-- Initial SMRIT schema baseline
+-- Initial SMRIT schema baseline
 
 CREATE TABLE "fms_accounts" (
   "id" VARCHAR(26) NOT NULL,
